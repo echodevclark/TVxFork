@@ -58,7 +58,7 @@ export const ChannelList = ({ channels, selectedChannel, onSelectChannel, panelS
                         <img
                           src={channel.logo}
                           alt={channel.name}
-                          className="w-8 h-8 rounded object-cover"
+                          className="w-8 h-8 rounded object-contain"
                         />
                       ) : (
                         <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center">
