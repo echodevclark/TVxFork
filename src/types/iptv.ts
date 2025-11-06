@@ -13,7 +13,7 @@ export interface Program {
   description?: string;
   start: Date;
   end: Date;
-  category?: string;
+  category?: string | { "@_lang": string; "#text": string }[];
   icon?: string;
   image?: string;
   episodeNum?: string;

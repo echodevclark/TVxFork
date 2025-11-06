@@ -178,7 +178,7 @@ export const EPGView = ({ programs, channelName, isIdle, onPosterClick, selected
                     {program.category && (
                       <>
                         <span>•</span>
-                        <span>{program.category}</span>
+                        <span>{typeof program.category === 'string' ? program.category : program.category.map((c) => c["#text"]).join(", ")}</span>
                       </>
                     )}
                   </div>
