@@ -13,7 +13,8 @@ export const parseXMLTV = (content: string): EPGData => {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
-    processEntities: true, // Now process entities since we escaped bare &
+    processEntities: true, // Process HTML entities like &#246; -> ö
+    htmlEntities: true, // Enable HTML entity processing
   });
   
   try {
