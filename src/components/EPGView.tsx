@@ -119,6 +119,12 @@ export const EPGView = ({ programs, channelName, isIdle, onPosterClick, selected
                 <div className="flex items-center gap-2 text-sm text-foreground/80 mb-2">
                   <Clock className="w-4 h-4" />
                   <span>{formatDuration(currentProgram.start, currentProgram.end)}</span>
+                  {currentProgram.category && (
+                    <>
+                      <span>•</span>
+                      <span>{typeof currentProgram.category === 'string' ? currentProgram.category : currentProgram.category.map((c) => c["#text"]).join(", ")}</span>
+                    </>
+                  )}
                 </div>
                 <Star 
                   className={`absolute bottom-3 right-3 w-4 h-4 cursor-pointer ${isFavorite(currentProgram) ? 'fill-white text-white opacity-50' : 'text-muted-foreground'}`} 
@@ -178,7 +184,7 @@ export const EPGView = ({ programs, channelName, isIdle, onPosterClick, selected
                     {program.category && (
                       <>
                         <span>•</span>
-                        <span>{program.category}</span>
+                        <span>{typeof program.category === 'string' ? program.category : program.category.map((c) => c["#text"]).join(", ")}</span>
                       </>
                     )}
                   </div>
