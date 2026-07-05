@@ -2,7 +2,8 @@ import { Program } from "@/types/iptv";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Clock, Star, Play } from "lucide-react";
-import { useState } from "react";
+import { formatTime, formatDuration } from "@/utils/time";
+import { getCurrentProgram } from "@/utils/epg";
 
 interface EPGViewProps {
   programs: Program[];
@@ -17,19 +18,8 @@ interface EPGViewProps {
 
 export const EPGView = ({ programs, channelName, isIdle, onPosterClick, selectedPoster, panelStyle = 'bordered', favorites, toggleFavorite }: EPGViewProps) => {
   const now = new Date();
-  
-  const currentProgram = programs.find(
-    p => p.start <= now && p.end > now
-  );
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatDuration = (start: Date, end: Date) => {
-    const minutes = Math.round((end.getTime() - start.getTime()) / 60000);
-    return `${minutes}min`;
-  };
+  const currentProgram = getCurrentProgram(programs, now);
 
   const isFavorite = (program: Program) => {
     const key = `${program.title}-${program.start.getTime()}`;
@@ -41,25 +31,20 @@ export const EPGView = ({ programs, channelName, isIdle, onPosterClick, selected
     
     // Simple character limit from the beginning of the entire title
     if (maxChars && text.length > maxChars) {
-      const charTruncated = text.slice(0, maxChars).trim();
-      console.log('CHAR TRUNCATED TO:', charTruncated + '...');
-      return charTruncated + '...';
+      return text.slice(0, maxChars).trim() + '...';
     }
-    
+
     // Then check word limit on entire text
     const words = text.split(' ');
     if (words.length > maxWords) {
       const wordTruncated = words.slice(0, maxWords).join(' ');
       // After word truncation, check if it still exceeds char limit
       if (maxChars && wordTruncated.length > maxChars) {
-        const charTruncated = wordTruncated.slice(0, maxChars).trim();
-        return charTruncated + '...';
+        return wordTruncated.slice(0, maxChars).trim() + '...';
       }
-      console.log('WORD TRUNCATED TO:', wordTruncated + '...');
       return wordTruncated + '...';
     }
-    
-    console.log('NO TRUNCATION NEEDED');
+
     return text;
   };
 
@@ -70,8 +55,6 @@ export const EPGView = ({ programs, channelName, isIdle, onPosterClick, selected
       </Card>
     );
   }
-
-  const cleanName = channelName.replace(/\b(movies?|shows?)\b/gi, '').trim();
 
   return (
     <ScrollArea className="h-[200px]">

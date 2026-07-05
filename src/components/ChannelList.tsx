@@ -1,8 +1,10 @@
 import { Channel } from "@/types/iptv";
 import { Card } from "@/components/ui/card";
-import { Tv, Clapperboard, Book, BookOpen, History, Trophy } from "lucide-react";
+import { Tv } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef } from "react";
+import { formatChannelName, getChannelCategory } from "@/utils/channelFormat";
+import { CategoryIcon } from "@/components/CategoryIcon";
 
 interface ChannelListProps {
   channels: Channel[];
@@ -66,15 +68,14 @@ export const ChannelList = ({ channels, selectedChannel, onSelectChannel, panelS
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{channel.name.replace(/\b(movies?|shows?|sports?|history|doc|documentary)\b/gi, '').trim()}</p>
+                        <p className="text-xs font-medium truncate">{formatChannelName(channel.name)}</p>
                       </div>
                     </div>
                     <div>
-                      {(channel.name.toLowerCase().includes('show') || channel.group?.toLowerCase().includes('show')) && <Tv className="w-3 h-3 text-muted-foreground" />}
-                      {(channel.name.toLowerCase().includes('movie') || channel.group?.toLowerCase().includes('movie')) && <Clapperboard className="w-3 h-3 text-muted-foreground" />}
-                      {(channel.name.toLowerCase().includes('sport') || channel.group?.toLowerCase().includes('sport')) && <Trophy className="w-3 h-3 text-muted-foreground" />}
-                      {(channel.name.toLowerCase().includes('history') || channel.group?.toLowerCase().includes('history')) && <History className="w-3 h-3 text-muted-foreground" />}
-                      {(channel.name.toLowerCase().includes('doc') || channel.group?.toLowerCase().includes('doc')) && <History className="w-3 h-3 text-muted-foreground" />}
+                      <CategoryIcon
+                        category={getChannelCategory(channel.name, channel.group)}
+                        className="w-3 h-3 text-muted-foreground"
+                      />
                     </div>
                   </div>
                 </Card>

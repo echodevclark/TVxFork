@@ -3,6 +3,9 @@ import { Channel, EPGData, Program, AppSettings } from "@/types/iptv";
 import { parseM3U } from "@/utils/m3uParser";
 import { parseXMLTV } from "@/utils/xmltvParser";
 import { loadFromUrl } from "@/utils/urlLoader";
+import { formatChannelName, getChannelCategory } from "@/utils/channelFormat";
+import { getCurrentProgram as getCurrentProgramFromList } from "@/utils/epg";
+import { CategoryIcon } from "@/components/CategoryIcon";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { ChannelList } from "@/components/ChannelList";
 import { EPGView } from "@/components/EPGView";
@@ -86,26 +89,13 @@ const Index = () => {
       // 2. Current channel (after 2 seconds)
       setTimeout(() => {
         if (selectedChannel) {
-          const cleanName = selectedChannel.name.replace(/\b(movies?|shows?|sports?|history|doc|documentary)\b/gi, '').trim();
-          const nameLower = selectedChannel.name.toLowerCase();
-          const groupLower = selectedChannel.group?.toLowerCase() || '';
-          
-          let icon = null;
-          if (nameLower.includes('movie') || groupLower.includes('movie')) {
-            icon = <Clapperboard className="w-4 h-4 inline-block" />;
-          } else if (nameLower.includes('show') || groupLower.includes('show')) {
-            icon = <Tv className="w-4 h-4 inline-block" />;
-          } else if (nameLower.includes('sport') || groupLower.includes('sport')) {
-            icon = <Trophy className="w-4 h-4 inline-block" />;
-          } else if (nameLower.includes('history') || groupLower.includes('history')) {
-            icon = <History className="w-4 h-4 inline-block" />;
-          } else if (nameLower.includes('doc')) {
-            icon = <History className="w-4 h-4 inline-block" />;
-          }
-          
           toast.info(
             <span className="flex items-center gap-2">
-              Now Playing: {cleanName} {icon}
+              Now Playing: {formatChannelName(selectedChannel.name)}{' '}
+              <CategoryIcon
+                category={getChannelCategory(selectedChannel.name, selectedChannel.group)}
+                className="w-4 h-4 inline-block"
+              />
             </span>
           );
         }
@@ -273,13 +263,8 @@ const Index = () => {
     setSelectedPoster(program);
   }, []);
 
-  const getCurrentProgram = (channel: Channel | null): Program | null => {
-    if (!channel || !epgData[channel.id]) return null;
-    const now = new Date();
-    return epgData[channel.id].find(program => 
-      program.start <= now && program.end > now
-    ) || null;
-  };
+  const getCurrentProgram = (channel: Channel | null): Program | null =>
+    channel ? getCurrentProgramFromList(epgData[channel.id] || []) : null;
 
   useEffect(() => {
     const program = getCurrentProgram(selectedChannel);
@@ -309,26 +294,13 @@ const Index = () => {
       
       if (shouldShowNotification && settings.showNotifications) {
         // Use the same formatting as the initial load notification
-        const cleanName = selectedChannel.name.replace(/\b(movies?|shows?|sports?|history|doc|documentary)\b/gi, '').trim();
-        const nameLower = selectedChannel.name.toLowerCase();
-        const groupLower = selectedChannel.group?.toLowerCase() || '';
-        
-        let icon = null;
-        if (nameLower.includes('movie') || groupLower.includes('movie')) {
-          icon = <Clapperboard className="w-4 h-4 inline-block" />;
-        } else if (nameLower.includes('show') || groupLower.includes('show')) {
-          icon = <Tv className="w-4 h-4 inline-block" />;
-        } else if (nameLower.includes('sport') || groupLower.includes('sport')) {
-          icon = <Trophy className="w-4 h-4 inline-block" />;
-        } else if (nameLower.includes('history') || groupLower.includes('history')) {
-          icon = <History className="w-4 h-4 inline-block" />;
-        } else if (nameLower.includes('doc')) {
-          icon = <History className="w-4 h-4 inline-block" />;
-        }
-        
         queuedToast.info(
           <span className="flex items-center gap-2">
-            Now Playing: {cleanName} {icon}
+            Now Playing: {formatChannelName(selectedChannel.name)}{' '}
+            <CategoryIcon
+              category={getChannelCategory(selectedChannel.name, selectedChannel.group)}
+              className="w-4 h-4 inline-block"
+            />
           </span>
         );
       }

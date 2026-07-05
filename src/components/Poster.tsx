@@ -1,6 +1,7 @@
 import { Program } from "@/types/iptv";
 import { X, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
+import { displayYear, googleSearchUrl, openGoogleSearch } from "@/utils/search";
 
 interface PosterProps {
   program: Program;
@@ -10,16 +11,8 @@ interface PosterProps {
 
 export const Poster = ({ program, onClose, isIdle }: PosterProps) => {
   const [isClosing, setIsClosing] = useState(false);
-  
-  const searchYear = program.year 
-    ? (typeof program.year === 'number' && program.year > 9999
-        ? String(program.year).substring(0, 4)
-        : program.year)
-    : '';
-  
-  const googleSearchQuery = searchYear 
-    ? `${program.title} (${searchYear})`
-    : program.title;
+
+  const year = displayYear(program.year);
 
   // Close poster when idle with smooth transition
   useEffect(() => {
@@ -63,11 +56,11 @@ export const Poster = ({ program, onClose, isIdle }: PosterProps) => {
           {program.year && (
             <span className="text-muted-foreground flex items-center">
               <Calendar className="w-3 h-3 inline mr-1" />
-              {searchYear}
+              {year}
             </span>
           )}
           <a
-            href={`https://www.google.com/search?q=${encodeURIComponent(googleSearchQuery)}`}
+            href={googleSearchUrl(program)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:underline"
@@ -79,7 +72,7 @@ export const Poster = ({ program, onClose, isIdle }: PosterProps) => {
         src={program.image || program.icon}
         alt="Poster"
         className="w-full h-auto max-h-[400px] object-contain rounded cursor-pointer hover:opacity-80 transition-opacity mx-auto block"
-        onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(googleSearchQuery)}`, '_blank')}
+        onClick={() => openGoogleSearch(program)}
       />
       </div>
     </div>
