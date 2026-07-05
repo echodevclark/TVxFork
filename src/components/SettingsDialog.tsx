@@ -39,37 +39,17 @@ interface SettingsDialogProps {
 export const SettingsDialog = ({ open, onOpenChange, settings, onSave, onGlobalSave, onLoad, inline }: SettingsDialogProps) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [lastNotificationTime, setLastNotificationTime] = useState<number>(0);
 
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
 
-  // Start 20 second timeout when settings open
-  useEffect(() => {
-    if (open) {
-      const id = setTimeout(() => {
-        // eslint-disable-next-line react-hooks/immutability
-        handleClose();
-        // Switch to theater mode after closing
-        setTimeout(() => {
-          if (onGlobalSave) {
-            onGlobalSave({ ...localSettings });
-          }
-        }, 100);
-      }, 20000); // 20 seconds
-      setTimeoutId(id);
-    } else {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        setTimeoutId(null);
-      }
-    }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [open]);
+  // Note: the settings panel is auto-hidden after real inactivity by the idle
+  // timer in Index (which resets on interaction and restores the panel on the
+  // next activity). We deliberately do NOT run a separate fixed 20s auto-close
+  // here: it fired mid-edit and, because its timeout captured localSettings from
+  // when the panel opened, re-saved those stale values — wiping in-session edits.
 
   // Throttled toast function to prevent spam (minimum 1s between notifications)
   const throttledToast = (message: string) => {
