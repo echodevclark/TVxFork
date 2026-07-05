@@ -15,6 +15,8 @@ import { Poster } from "@/components/Poster";
 import { ClockDisplay } from "@/components/ClockDisplay";
 import { useSettings } from "@/hooks/useSettings";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useQueuedToast } from "@/hooks/useQueuedToast";
+import { useIdleState } from "@/hooks/useIdleState";
 import { logger } from "@/utils/logger";
 import { Button } from "@/components/ui/button";
 import { Tv, FileText, Upload, Settings, Menu, Maximize, Volume2, VolumeX, Star, X, Play, Clock, Clapperboard, Film, RotateCw, Book, BookOpen, History, Trophy, Calendar } from "lucide-react";
@@ -156,20 +158,13 @@ const Index = () => {
     return stored ? new Set(JSON.parse(stored)) : new Set();
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [isIdle, setIsIdle] = useState(false);
-  const [isScrolling, setIsScrolling] = useState(false);
   const channelListRef = useRef<HTMLDivElement>(null);
   const epgViewRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const fullGuideRef = useRef<HTMLDivElement>(null);
   const mainTimelineRef = useRef<HTMLDivElement>(null);
   const selectedChannelRowRef = useRef<HTMLDivElement>(null);
-  
-  // Refs to track current state for idle timeout
-  const fullGuideOpenRef = useRef(fullGuideOpen);
-  const focusedProgramRef = useRef(focusedProgram);
-  const settingsOpenRef = useRef(settingsOpen);
-  
+
   // Track if this is the initial load to prevent notification spam
   const isInitialLoadRef = useRef(true);
   const hasShownInitialChannelRef = useRef(false);
@@ -178,7 +173,6 @@ const Index = () => {
   // Track if initial notification sequence has completed
   const initialNotificationSequenceCompleteRef = useRef(false);
   
-  const [sidebarVisible, setSidebarVisible] = useState(true);
   const [theaterMode, setTheaterMode] = useState(false); // Track if user clicked video to hide everything
   const [activeTab, setActiveTab] = useState('guide');
   const [statsOpen, setStatsOpen] = useState(false);
@@ -188,66 +182,19 @@ const Index = () => {
   const [selectedPoster, setSelectedPoster] = useState<Program | null>(null);
   const [currentProgram, setCurrentProgram] = useState<Program | null>(null);
 
-  // Notification queue to ensure 2-second gaps between all notifications
-  const notificationQueueRef = useRef<Array<() => void>>([]);
-  const isProcessingNotificationsRef = useRef(false);
-  // Track last shown time for each notification to prevent duplicates within 5 seconds
-  const lastNotificationTimesRef = useRef<Map<string, number>>(new Map());
+  // Idle detection, scroll tracking and sidebar visibility. Extracted to a shared hook.
+  const { isIdle, setIsIdle, sidebarVisible, setSidebarVisible } = useIdleState({
+    theaterMode,
+    settingsOpen,
+    fullGuideOpen,
+    focusedProgram,
+    selectedPoster,
+    scrollRefs: [channelListRef, epgViewRef, settingsRef, fullGuideRef],
+    closePoster: () => setSelectedPoster(null),
+  });
 
-  const queueNotification = useCallback((notificationFn: () => void, messageKey: string) => {
-    const now = Date.now();
-    const lastShown = lastNotificationTimesRef.current.get(messageKey);
-    
-    // Only allow the same notification if 5 seconds have passed since last shown
-    if (lastShown && (now - lastShown) < 5000) {
-      return; // Skip this notification
-    }
-    
-    // Update last shown time
-    lastNotificationTimesRef.current.set(messageKey, now);
-    
-    notificationQueueRef.current.push(notificationFn);
-    if (!isProcessingNotificationsRef.current) {
-      isProcessingNotificationsRef.current = true;
-      processNotificationQueue();
-    }
-  }, []);
-
-  const processNotificationQueue = useCallback(() => {
-    if (notificationQueueRef.current.length > 0) {
-      const notificationFn = notificationQueueRef.current.shift()!;
-      notificationFn();
-      setTimeout(() => {
-        processNotificationQueue();
-      }, 2000); // 2-second gap between notifications
-    } else {
-      isProcessingNotificationsRef.current = false;
-    }
-  }, []);
-
-  // Create queued versions of toast functions with deduplication
-  const queuedToast = {
-    success: (message: string | React.ReactNode) => {
-      const messageKey = typeof message === 'string' ? message : 'jsx-success';
-      if (typeof message === 'string') logger.log(message);
-      return queueNotification(() => toast.success(message), messageKey);
-    },
-    error: (message: string | React.ReactNode) => {
-      const messageKey = typeof message === 'string' ? message : 'jsx-error';
-      if (typeof message === 'string') logger.error(message);
-      return queueNotification(() => toast.error(message), messageKey);
-    },
-    info: (message: string | React.ReactNode) => {
-      const messageKey = typeof message === 'string' ? message : 'jsx-info';
-      if (typeof message === 'string') logger.info(message);
-      return queueNotification(() => toast.info(message), messageKey);
-    },
-    warning: (message: string | React.ReactNode) => {
-      const messageKey = typeof message === 'string' ? message : 'jsx-warning';
-      if (typeof message === 'string') logger.warn(message);
-      return queueNotification(() => toast.warning(message), messageKey);
-    },
-  };
+  // Notification queue (2s spacing + 5s de-dupe). Extracted to a shared hook.
+  const { queuedToast, queueNotification } = useQueuedToast();
 
   const handleClosePoster = useCallback(() => {
     logger.info('Closed: Poster');
@@ -443,137 +390,6 @@ const Index = () => {
     }
   };
 
-  // Keep refs in sync with state
-  useEffect(() => {
-    fullGuideOpenRef.current = fullGuideOpen;
-  }, [fullGuideOpen]);
-
-  useEffect(() => {
-    focusedProgramRef.current = focusedProgram;
-  }, [focusedProgram]);
-
-  useEffect(() => {
-    settingsOpenRef.current = settingsOpen;
-  }, [settingsOpen]);
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    let scrollTimeout: NodeJS.Timeout;
-    let posterTimeout: NodeJS.Timeout;
-
-    const resetIdle = () => {
-      setIsIdle(false);
-      if (!theaterMode) {
-        setSidebarVisible(true);
-      }
-      clearTimeout(timeout);
-      clearTimeout(posterTimeout);
-      
-      // Different idle times based on context:
-      // - Settings open: 20s (user is configuring)
-      // - Full guide with popup open: 25s (user is reading program details)
-      // - Scrolling: 10s (user is actively navigating)  
-      // - Default: 3s (normal viewing)
-      // - Full guide or focused program: Don't use 3s timeout, use 10s instead
-      let idleTime: number;
-      if (settingsOpen) {
-        idleTime = 20000;
-      } else if (focusedProgram && fullGuideOpen) {
-        idleTime = 25000; // 25s when popup is open in full guide
-      } else if (fullGuideOpen || focusedProgram) {
-        idleTime = 10000;
-      } else if (isScrolling) {
-        idleTime = 10000;
-      } else {
-        idleTime = 3000;
-      }
-      
-      // Close poster at 9s when in full guide mode (before idle timeout at 10s)
-      if (fullGuideOpen && selectedPoster) {
-        posterTimeout = setTimeout(() => {
-          setSelectedPoster(null);
-        }, 9000);
-      }
-      
-      // Set the idle timeout - will trigger based on context
-      timeout = setTimeout(() => {
-        setIsIdle(true);
-        setSidebarVisible(false);
-        setSelectedPoster(null); // Close poster when idle
-        // Note: focusedProgram popup stays open even when idle
-      }, idleTime);
-    };
-
-    const handleScrollStart = () => {
-      setIsScrolling(true);
-      clearTimeout(scrollTimeout);
-      resetIdle(); // Reset idle timer when scrolling starts
-    };
-
-    const handleScrollEnd = () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        setIsScrolling(false);
-      }, 1000); // Consider scrolling stopped after 1s of no scroll events
-    };
-
-    // Add scroll listeners to specific scrollable areas
-    const scrollableElements = [
-      channelListRef.current,
-      epgViewRef.current,
-      settingsRef.current,
-      fullGuideRef.current,
-      // Also listen to any ScrollArea viewports that might be dynamically created
-      ...Array.from(document.querySelectorAll('[data-radix-scroll-area-viewport]')),
-      // Also listen to any elements with overflow scroll
-      ...Array.from(document.querySelectorAll('.overflow-auto, .overflow-y-auto'))
-    ].filter(Boolean);
-
-    scrollableElements.forEach((element) => {
-      element?.addEventListener('scroll', handleScrollStart, { passive: true });
-      element?.addEventListener('scroll', handleScrollEnd, { passive: true });
-    });
-
-    // Also listen for wheel events (desktop scrolling)
-    const handleWheel = (e: WheelEvent) => {
-      // Check if the event target is within our scrollable areas
-      const target = e.target as Element;
-      const isInScrollableArea = scrollableElements.some(el => el.contains(target));
-      if (isInScrollableArea && Math.abs(e.deltaY) > 0) {
-        handleScrollStart();
-        // For wheel events, reset the scroll timeout to extend the scrolling state
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          setIsScrolling(false);
-        }, 1000);
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: true });
-
-    window.addEventListener('mousemove', resetIdle);
-    window.addEventListener('keydown', resetIdle);
-    window.addEventListener('touchstart', resetIdle);
-    window.addEventListener('click', resetIdle);
-    resetIdle(); // initial
-
-    return () => {
-      clearTimeout(timeout);
-      clearTimeout(scrollTimeout);
-      clearTimeout(posterTimeout);
-      window.removeEventListener('mousemove', resetIdle);
-      window.removeEventListener('keydown', resetIdle);
-      window.removeEventListener('touchstart', resetIdle);
-      window.removeEventListener('click', resetIdle);
-      window.removeEventListener('wheel', handleWheel);
-
-      scrollableElements.forEach((element) => {
-        element?.removeEventListener('scroll', handleScrollStart);
-        element?.removeEventListener('scroll', handleScrollEnd);
-      });
-    };
-  }, [fullGuideOpen, settingsOpen, selectedPoster, isScrolling, focusedProgram, theaterMode]);
-
   useEffect(() => {
     if (fullGuideOpen) {
       let expansionTimer: NodeJS.Timeout;
@@ -683,10 +499,6 @@ const Index = () => {
       };
     }
   }, [fullGuideExpanded]);
-
-  useEffect(() => {
-    document.body.style.cursor = isIdle ? 'none' : 'default';
-  }, [isIdle]);
 
   useKeyboardShortcuts({
     onSettings: () => {
