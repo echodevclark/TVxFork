@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local dev runtime config (real feed URLs) — generated at runtime in Docker via env.js.template
+public/env.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
