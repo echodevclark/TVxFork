@@ -22,6 +22,8 @@ export const LoadingScreen = ({
 
   useEffect(() => {
     if (shouldFadeOut && !isFadingOut) {
+      // Intentional: start the fade, then notify the parent after it completes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsFadingOut(true);
       
       // Call onLoadingComplete after the 500ms fade animation completes

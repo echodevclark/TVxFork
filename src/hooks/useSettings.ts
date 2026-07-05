@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AppSettings } from '@/types/iptv';
 import { logger } from '@/utils/logger';
 
-const defaultSettings: AppSettings = {
+export const defaultSettings: AppSettings = {
   m3uUrl: (window as Window & { ENV?: { VITE_M3U_URL?: string } }).ENV?.VITE_M3U_URL || 'http://your-tunarr-ip-address:8000/channels.m3u',
   xmltvUrl: (window as Window & { ENV?: { VITE_XMLTV_URL?: string } }).ENV?.VITE_XMLTV_URL || 'http://your-tunarr-ip-address:8000/xmltv.xml',
   autoLoad: true,

@@ -17,6 +17,8 @@ export const Poster = ({ program, onClose, isIdle }: PosterProps) => {
   // Close poster when idle with smooth transition
   useEffect(() => {
     if (isIdle) {
+      // Intentional: begin the fade-out, then close after the transition.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsClosing(true);
       // Delay actual close to allow fade-out animation
       const timer = setTimeout(() => {

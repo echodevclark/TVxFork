@@ -79,7 +79,9 @@ const FlipClock = ({ time }: { time: Date }) => {
   const prevMinutes = pad(prevTime.getMinutes());
 
   useEffect(() => {
+    // Intentional: changing digits trigger the flip animation.
     if (hours !== prevHours) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFlipping(prev => ({ ...prev, hours: true }));
       setTimeout(() => {
         setFlipping(prev => ({ ...prev, hours: false }));
@@ -87,6 +89,7 @@ const FlipClock = ({ time }: { time: Date }) => {
       }, 300);
     }
     if (minutes !== prevMinutes) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFlipping(prev => ({ ...prev, minutes: true }));
       setTimeout(() => {
         setFlipping(prev => ({ ...prev, minutes: false }));

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { AppSettings } from "@/types/iptv";
+import { defaultSettings } from "@/hooks/useSettings";
 import { Keyboard, X, FileText, Sparkles, Film, Contrast, Focus, Droplets, Clock, Layers, Bell, ChevronDown, ChevronUp, Github, RotateCcw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -49,6 +50,7 @@ export const SettingsDialog = ({ open, onOpenChange, settings, onSave, onGlobalS
   useEffect(() => {
     if (open) {
       const id = setTimeout(() => {
+        // eslint-disable-next-line react-hooks/immutability
         handleClose();
         // Switch to theater mode after closing
         setTimeout(() => {
@@ -90,22 +92,18 @@ export const SettingsDialog = ({ open, onOpenChange, settings, onSave, onGlobalS
     }
   };
 
-  // For text inputs, just update local state (will save on blur or close)
-  const updateLocalSetting = (newSettings: AppSettings) => {
-    setLocalSettings(newSettings);
-  };
-
   const handleResetAdvancedSettings = () => {
-    const defaultAdvancedSettings = {
-      vignetteStrength: 0.35,
-      vignetteRadius: 0.75,
-      rgbShiftStrength: 0.0012,
-      edgeAberration: 10,
-      frameEdgeBlur: 10,
-      centerSharpness: 0.75,
-      sharpenFirst: true,
+    const { vignetteStrength, vignetteRadius, rgbShiftStrength, edgeAberration, frameEdgeBlur, centerSharpness, sharpenFirst } = defaultSettings;
+    const resetSettings = {
+      ...localSettings,
+      vignetteStrength,
+      vignetteRadius,
+      rgbShiftStrength,
+      edgeAberration,
+      frameEdgeBlur,
+      centerSharpness,
+      sharpenFirst,
     };
-    const resetSettings = { ...localSettings, ...defaultAdvancedSettings };
     updateSetting(resetSettings, 'Advanced TV effects reset to defaults');
   };
 
@@ -200,26 +198,6 @@ export const SettingsDialog = ({ open, onOpenChange, settings, onSave, onGlobalS
             </SelectContent>
           </Select>
         </div>
-        {/* <div className="flex items-center justify-between">
-          <div className="space-y-0.5 flex-1">
-            <Label className="flex items-center gap-2">
-              <Film className="w-4 h-4" />
-              Audio Filter
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Warm valve & vinyl sound effects
-            </p>
-          </div>
-          <Switch
-            checked={localSettings.audioFilterEnabled}
-            onCheckedChange={(checked) => {
-              const newSettings = { ...localSettings, audioFilterEnabled: checked };
-              updateSetting(newSettings);
-              toast.info(checked ? 'Audio filter enabled' : 'Audio filter disabled');
-              logger.info(checked ? 'Audio filter enabled' : 'Audio filter disabled');
-            }}
-          />
-        </div> */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5 flex-1">
             <Label className="flex items-center gap-2">
