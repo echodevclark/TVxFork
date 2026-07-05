@@ -87,8 +87,7 @@ export const parseXMLTV = (content: string): EPGData => {
     
     const totalProgrammes = Object.values(epgData).reduce((sum, progs) => sum + progs.length, 0);
     logger.log(`Loaded EPG data for ${totalProgrammes} programmes`);
-    console.log('Parsed EPG data:', epgData);
-    
+
     // Sort programs by start time
     Object.keys(epgData).forEach(channelId => {
       epgData[channelId].sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -97,7 +96,6 @@ export const parseXMLTV = (content: string): EPGData => {
     return epgData;
   } catch (error) {
     logger.error(`Failed to parse XMLTV: ${error}`);
-    console.log('Original content sample:', content.substring(0, 500));
     return {};
   }
 };

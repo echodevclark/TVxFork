@@ -9,7 +9,6 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { ChannelList } from "@/components/ChannelList";
 import { EPGView } from "@/components/EPGView";
-import { FileUploader } from "@/components/FileUploader";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { Poster } from "@/components/Poster";
 import { ClockDisplay } from "@/components/ClockDisplay";
@@ -232,8 +231,7 @@ const Index = () => {
     if (selectedChannel) {
       // Save the actual current channel (no offset needed since we handle AudioContext properly)
       localStorage.setItem('last-watched-channel', selectedChannel.id);
-      console.log(`Index: Saving current channel ${selectedChannel.name} (${selectedChannel.id}) to localStorage`);
-      
+
       // Only show notification if:
       // 1. Channels are loaded
       // 2. Not the initial load (first channel selection on page load)
@@ -286,18 +284,15 @@ const Index = () => {
       
       // Try to restore last watched channel
       const lastWatchedId = localStorage.getItem('last-watched-channel');
-      console.log('Index: Loading from localStorage - last-watched-channel:', lastWatchedId);
       let channelToSelect = null;
-      
+
       if (lastWatchedId) {
         channelToSelect = parsedChannels.find(ch => ch.id === lastWatchedId);
-        console.log('Index: Found matching channel:', channelToSelect?.name, channelToSelect?.id);
       }
-      
+
       // If no last watched or channel not found, use first channel
       if (!channelToSelect && parsedChannels.length > 0) {
         channelToSelect = parsedChannels[0];
-        console.log('Index: No saved channel found, using first channel:', channelToSelect.name);
       }
       
       if (channelToSelect) {
@@ -306,12 +301,7 @@ const Index = () => {
         const resumeAudioAndLoadChannel = async () => {
           try {
             // Try to resume AudioContext immediately (may fail without user gesture)
-            const audioContext = new ((window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!)();
-            if (audioContext.state === 'suspended') {
-              console.log('Index: AudioContext suspended on page load, will resume on user interaction');
-            } else {
-              console.log('Index: AudioContext running on page load');
-            }
+            new ((window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!)();
           } catch (error) {
             console.error('Index: Error checking AudioContext on page load:', error);
           }

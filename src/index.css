@@ -65,8 +65,20 @@ All colors MUST be HSL.
   }
 }
 
-@layer utilities {
-  .bg-gradient-primary {
-    background: var(--gradient-primary);
+/* Flip-clock digit animation (used by ClockDisplay). Previously defined in the
+   orphaned App.css, so it never took effect until moved here. */
+@keyframes flip {
+  0% {
+    transform: rotateX(0deg);
   }
+  50% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+.animate-flip {
+  animation: flip 0.3s ease-in-out;
 }
