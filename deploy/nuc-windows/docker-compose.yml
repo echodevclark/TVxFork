@@ -1,0 +1,49 @@
+# TVx + Caddy for an Intel NUC running Windows.
+#
+# Tunarr runs NATIVELY on the Windows host (so it can use Quick Sync) — it is NOT in this
+# compose. Only TVx and the Caddy reverse proxy are containerized. See ../../SETUP-WINDOWS-NUC.md.
+#
+#   cd deploy/nuc-windows
+#   docker compose up -d --build
+#
+# EDIT BEFORE RUNNING:
+#   1. The VITE_* URLs below → your Tunarr host (a browser-reachable LAN address or the
+#      proxy hostname from the Caddyfile). NOT localhost / host.docker.internal.
+#   2. The Caddyfile hostnames.
+
+services:
+  tvx:
+    # Build this fork's TVx image from the repo root (which holds the Dockerfile).
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    # Or use the published upstream image instead of building:
+    # image: ghcr.io/dopeytree/tvx:latest
+    container_name: tvx
+    environment:
+      - TZ=America/New_York
+      # Browser fetches these from Tunarr — use the proxy hostname (Option B) ...
+      - VITE_M3U_URL=http://tunarr.nuc.lan/api/channels.m3u
+      - VITE_XMLTV_URL=http://tunarr.nuc.lan/api/xmltv.xml
+      # ... or, without the proxy (Option A), the NUC's LAN IP + Tunarr port:
+      # - VITE_M3U_URL=http://192.168.1.65:8000/api/channels.m3u
+      # - VITE_XMLTV_URL=http://192.168.1.65:8000/api/xmltv.xml
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    container_name: tvx-caddy
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    # Lets Caddy reach Tunarr running natively on the Windows host (Docker Desktop).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

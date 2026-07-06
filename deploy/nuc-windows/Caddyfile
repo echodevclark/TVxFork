@@ -1,0 +1,22 @@
+# Caddy reverse proxy: TVx (container) + Tunarr (native on the Windows host) behind two
+# local hostnames. See ../../SETUP-WINDOWS-NUC.md.
+#
+# EDIT: replace tv.nuc.lan / tunarr.nuc.lan with your own hostnames, then point both at
+# the NUC's IP via DNS (router / Pi-hole / hosts file). Also set Tunarr's external URL to
+# http://tunarr.nuc.lan so the stream links in its M3U resolve through this proxy.
+
+{
+    # Local HTTP only — no automatic HTTPS/ACME for .lan names.
+    auto_https off
+}
+
+# The TVx viewer (container in this compose).
+tv.nuc.lan {
+    reverse_proxy tvx:80
+}
+
+# Tunarr — admin UI, API (M3U/XMLTV) and HLS streams. Runs natively on the Windows host,
+# so Caddy reaches it via host.docker.internal (port 8000 is Tunarr's default).
+tunarr.nuc.lan {
+    reverse_proxy host.docker.internal:8000
+}
